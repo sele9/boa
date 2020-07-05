@@ -31,11 +31,12 @@ use crate::{
 ///
 /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for
 /// [spec]: https://tc39.es/ecma262/#sec-for-statement
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(in crate::syntax::parser::statement) struct ForStatement {
     allow_yield: AllowYield,
     allow_await: AllowAwait,
     allow_return: AllowReturn,
+    label: Option<String>,
 }
 
 impl ForStatement {
@@ -44,6 +45,7 @@ impl ForStatement {
         allow_yield: Y,
         allow_await: A,
         allow_return: R,
+        label: Option<String>,
     ) -> Self
     where
         Y: Into<AllowYield>,
@@ -54,6 +56,7 @@ impl ForStatement {
             allow_yield: allow_yield.into(),
             allow_await: allow_await.into(),
             allow_return: allow_return.into(),
+            label,
         }
     }
 }
@@ -104,6 +107,6 @@ impl TokenParser for ForStatement {
             Statement::new(self.allow_yield, self.allow_await, self.allow_return).parse(cursor)?;
 
         // TODO: do not encapsulate the `for` in a block just to have an inner scope.
-        Ok(ForLoop::new(init, cond, step, body))
+        Ok(ForLoop::new(init, cond, step, body, self.label))
     }
 }

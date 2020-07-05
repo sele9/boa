@@ -99,6 +99,7 @@ impl TokenParser for Statement {
         // TODO: add BreakableStatement and divide Whiles, fors and so on to another place.
         let mut tok = cursor.peek(0).ok_or(ParseError::AbruptEnd)?;
 
+        // Is this statement prefixed with a label?
         let label =
             Label::new(self.allow_yield, self.allow_await, self.allow_return).try_parse(cursor);
 
@@ -128,7 +129,7 @@ impl TokenParser for Statement {
                     .map(Node::from)
             }
             TokenKind::Keyword(Keyword::For) => {
-                ForStatement::new(self.allow_yield, self.allow_await, self.allow_return)
+                ForStatement::new(self.allow_yield, self.allow_await, self.allow_return, label)
                     .parse(cursor)
                     .map(Node::from)
             }
