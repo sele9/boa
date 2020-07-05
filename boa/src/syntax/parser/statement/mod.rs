@@ -40,6 +40,7 @@ use crate::{
     syntax::ast::{node, Keyword, Node, Punctuator, TokenKind},
     BoaProfiler,
 };
+use labelled_stm::Label;
 
 /// Statement parsing.
 ///
@@ -96,7 +97,14 @@ impl TokenParser for Statement {
     fn parse(self, cursor: &mut Cursor<'_>) -> Result<Self::Output, ParseError> {
         let _timer = BoaProfiler::global().start_event("Statement", "Parsing");
         // TODO: add BreakableStatement and divide Whiles, fors and so on to another place.
-        let tok = cursor.peek(0).ok_or(ParseError::AbruptEnd)?;
+        let mut tok = cursor.peek(0).ok_or(ParseError::AbruptEnd)?;
+
+        let label =
+            Label::new(self.allow_yield, self.allow_await, self.allow_return).try_parse(cursor);
+
+        if label.is_some() {
+            tok = cursor.peek(0).ok_or(ParseError::AbruptEnd)?;
+        }
 
         match tok.kind {
             TokenKind::Keyword(Keyword::If) => {
