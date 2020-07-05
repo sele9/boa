@@ -14,6 +14,7 @@ mod declaration;
 mod expression;
 mod if_stm;
 mod iteration;
+mod labelled_stm;
 mod return_stm;
 mod switch;
 mod throw;
@@ -162,6 +163,9 @@ impl TokenParser for Statement {
                     .parse(cursor)
                     .map(Node::from)
             }
+            // TokenKind::Identifier(name) => LabelIdentifier::new(self.allow_yield, self.allow_await)
+            //     .parse(cursor)
+            //     .map(Node::from),
             // TODO: https://tc39.es/ecma262/#prod-LabelledStatement
             // TokenKind::Punctuator(Punctuator::Semicolon) => {
             //     return Ok(Node::new(NodeBase::Nope, tok.pos))
@@ -350,7 +354,7 @@ impl TokenParser for StatementListItem {
 ///  - [ECMAScript specification][spec]
 ///
 /// [spec]: https://tc39.es/ecma262/#prod-LabelIdentifier
-type LabelIdentifier = BindingIdentifier;
+pub(super) type LabelIdentifier = BindingIdentifier;
 
 /// Binding identifier parsing.
 ///
