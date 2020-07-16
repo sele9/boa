@@ -37,10 +37,10 @@ use self::{
 };
 use super::{AllowAwait, AllowReturn, AllowYield, Cursor, ParseError, TokenParser};
 use crate::{
-    syntax::ast::{node, Keyword, Node, Punctuator, TokenKind},
+    syntax::ast::{node, Keyword, Node, Punctuator, Token, TokenKind},
     BoaProfiler,
 };
-use labelled_stm::Label;
+use labelled_stm::LabelledStatement;
 
 /// Statement parsing.
 ///
@@ -97,15 +97,7 @@ impl TokenParser for Statement {
     fn parse(self, cursor: &mut Cursor<'_>) -> Result<Self::Output, ParseError> {
         let _timer = BoaProfiler::global().start_event("Statement", "Parsing");
         // TODO: add BreakableStatement and divide Whiles, fors and so on to another place.
-        let mut tok = cursor.peek(0).ok_or(ParseError::AbruptEnd)?;
-
-        // Is this statement prefixed with a label?
-        let label =
-            Label::new(self.allow_yield, self.allow_await, self.allow_return).try_parse(cursor);
-
-        if label.is_some() {
-            tok = cursor.peek(0).ok_or(ParseError::AbruptEnd)?;
-        }
+        let tok = cursor.peek(0).ok_or(ParseError::AbruptEnd)?;
 
         match tok.kind {
             TokenKind::Keyword(Keyword::If) => {
@@ -129,7 +121,7 @@ impl TokenParser for Statement {
                     .map(Node::from)
             }
             TokenKind::Keyword(Keyword::For) => {
-                ForStatement::new(self.allow_yield, self.allow_await, self.allow_return, label)
+                ForStatement::new(self.allow_yield, self.allow_await, self.allow_return)
                     .parse(cursor)
                     .map(Node::from)
             }
@@ -172,9 +164,22 @@ impl TokenParser for Statement {
                     .parse(cursor)
                     .map(Node::from)
             }
-            // TokenKind::Identifier(name) => LabelIdentifier::new(self.allow_yield, self.allow_await)
-            //     .parse(cursor)
-            //     .map(Node::from),
+            // Create guard to check if the next token is a `:` then we know we're sitting on a label
+            // if not fall back to ExpressionStatement
+            TokenKind::Identifier(_)
+                if matches!(
+                    cursor.peek(1),
+                    Some(Token {
+                        kind: TokenKind::Punctuator(Punctuator::Colon),
+                        ..
+                    })
+                ) =>
+            {
+                LabelledStatement::new(self.allow_yield, self.allow_await, self.allow_return)
+                    .parse(cursor)
+                    .map(Node::from)
+            }
+
             // TODO: https://tc39.es/ecma262/#prod-LabelledStatement
             // TokenKind::Punctuator(Punctuator::Semicolon) => {
             //     return Ok(Node::new(NodeBase::Nope, tok.pos))
